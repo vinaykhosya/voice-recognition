@@ -1,0 +1,62 @@
+#include <WiFi.h>
+#include <HTTPClient.h>
+#include <FS.h>
+#include <SPIFFS.h>
+
+const char* ssid = "realme narzo 60x 5G";  // Your WiFi name
+const char* password = "12341234";          // Your WiFi password
+
+const char* serverIP = "192.168.61.174";     // Your Laptop's IP
+const int serverPort = 8000;                 // Your Flask server port
+
+void setup() {
+  Serial.begin(115200);
+  
+  // Initialize SPIFFS to store received file
+  if (!SPIFFS.begin(true)) {
+    Serial.println("An error has occurred while mounting SPIFFS");
+    return;
+  }
+
+  // Connect to Wi-Fi
+  WiFi.begin(ssid, password);
+  Serial.print("Connecting to WiFi..");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("\nConnected to the WiFi network");
+
+  // Form the URL to send request
+  String url = "http://" + String(serverIP) + ":" + String(serverPort) + "/start_recording";
+
+  HTTPClient http;
+  http.begin(url);
+  int httpCode = http.GET();
+
+  if (httpCode == 200) {
+    Serial.println("Recording Started. Receiving audio...");
+    WiFiClient* stream = http.getStreamPtr();
+
+    File file = SPIFFS.open("/recorded_audio.wav", FILE_WRITE);
+    if (!file) {
+      Serial.println("Failed to open file on SPIFFS");
+      return;
+    }
+
+    while (http.connected() && stream->available()) {
+      file.write(stream->read());
+    }
+
+    file.close();
+    Serial.println("Audio saved as /recorded_audio.wav in ESP32!");
+  } else {
+    Serial.println("Error in HTTP request: " + String(httpCode));
+  }
+
+  http.end();
+}
+
+void loop() {
+  // Nothing to do here
+}

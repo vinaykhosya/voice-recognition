@@ -1,0 +1,21 @@
+def start_server():
+    # 1. Set up Flask server and wait for incoming connections
+    app.run(host='0.0.0.0', port=8000)
+
+@app.route('/receive_audio', methods=['POST'])
+def receive_audio():
+    try:
+        # 2. Get the incoming audio data from the ESP32
+        audio_data = request.data
+        
+        # 3. Process the incoming data (check format, size, etc.)
+        processed_audio = process_audio_data(audio_data)
+        
+        # 4. Store the received audio file in WAV format
+        save_audio_file(processed_audio, "received_audio.wav")
+        
+        # 5. Send acknowledgment to ESP32
+        return "Audio received successfully!", 200
+    except Exception as e:
+        print(f"Error receiving audio: {e}")
+        return "Error receiving audio", 500
